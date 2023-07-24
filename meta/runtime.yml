@@ -1,0 +1,7 @@
+plugin_routing:
+  action:
+    sonic_config:
+      redirect: sense.sonic.sonic
+    sonic_facts:
+      redirect: sense.sonic.sonic
+

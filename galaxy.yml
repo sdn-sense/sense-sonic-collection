@@ -1,0 +1,15 @@
+namespace: sense
+name: sonic
+version: 1.0.0
+readme: README.md
+authors:
+- Justas Balcas <juztas@gmail.com>
+description: Ansible Network Collections for Azure SONiC
+license_file: LICENCE
+tags: [Azure, SONiC, networking, P4]
+dependencies:
+  ansible.netcommon: '>=1.0.0'
+repository: https://github.com/sdn-sense/sense-sonic-collection
+documentation: https://github.com/sdn-sense/sense-sonic-collection
+homepage: https://github.com/sdn-sense/sense-sonic-collection
+issues: https://github.com/sdn-sense/sense-sonic-collection
