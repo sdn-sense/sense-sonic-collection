@@ -8,8 +8,8 @@ import json
 import sys
 import subprocess
 import shlex
-import pprint
 from ipaddress import ip_address, ip_network
+
 
 def normalizedip(ipInput):
     """
@@ -17,7 +17,6 @@ def normalizedip(ipInput):
     This function will ensure same format is used.
     """
     tmp = ipInput.split('/')
-    ipaddr = None
     try:
         ipaddr = ip_address(tmp[0]).compressed
     except ValueError:
@@ -29,9 +28,11 @@ def normalizedip(ipInput):
     # We return what we get here, because it had multiple / (which is not really valid)
     return ipInput
 
+
 def getsubnet(ipInput, strict=False):
     """Get subnet if IP address"""
     return ip_network(ipInput, strict=strict).compressed
+
 
 def ipVersion(ipInput, strict=False):
     """Check if IP is valid.
@@ -99,7 +100,7 @@ class Config(FactsBase):
 
     def populate(self):
         super(Config, self).populate()
-        # self.facts['config'] = self.responses[0]
+        self.facts['config'] = self.responses[0]
 
 
 class Interfaces(FactsBase):
@@ -173,7 +174,7 @@ class Interfaces(FactsBase):
         # Add All Ports
         mac = self.getMac()
         for portType in ['PORT', 'PORTCHANNEL', 'VLAN']:
-            for port, portDict in  self.responses[1].get(portType, {}).items():
+            for port, portDict in self.responses[1].get(portType, {}).items():
                 out = self.facts['interfaces'].setdefault(port, {})
                 if 'speed' in portDict:
                     out['bandwidth'] = portDict['speed']
@@ -220,7 +221,6 @@ class Interfaces(FactsBase):
             if tagMode in ['tagged', 'untagged']:
                 out.setdefault(tagMode, [])
                 out[tagMode].append(tmpPort[1])
-
 
     def parseRoutes(self):
         """General Get Routes. INPUT: routeType = (int) 4,6"""
@@ -282,10 +282,10 @@ def main():
             inst.populate()
             facts.update(inst.facts)
 
-    ansible_facts = {}
+    ansible_facts = {'ansible_facts': {}}
     for key, value in facts.items():
         key = 'ansible_net_%s' % key
-        ansible_facts[key] = value
+        ansible_facts['ansible_facts'][key] = value
 
     print(json.dumps(ansible_facts))
     sys.exit(0)
