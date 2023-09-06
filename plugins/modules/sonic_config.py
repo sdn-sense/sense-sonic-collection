@@ -46,12 +46,17 @@ def externalCommand(command):
     """Execute External Commands and return stdout and stderr."""
     command = shlex.split(command)
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return proc.communicate()
-
+    stdout, stderr = proc.communicate()
+    exitCode = proc.wait()
+    if exitCode != 0:
+        raise Exception(f"{command} exited non-zero. Exit: {exitCode} Stdout: {stdout} Stderr: {stderr}")
+    return [stdout, stderr, exitCode]
 
 def sendviaStdIn(maincmd, commands):
     """Send commands to maincmd stdin"""
-    mainProc = subprocess.Popen([maincmd], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    if not isinstance(maincmd, list):
+        maincmd = shlex.split(maincmd)
+    mainProc = subprocess.Popen(maincmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     singlecmd = ""
     for cmd in commands:
         singlecmd += "%s\n" % cmd
@@ -287,7 +292,7 @@ class vtyshParser():
 
     def getConfig(self):
         """Get vtysh running config and parse it to dict format"""
-        vtyshProc = externalCommand("vtysh -c 'show running-config'")
+        vtyshProc = externalCommand("sudo vtysh -c 'show running-config'")
         self.stdout = vtyshProc[0].decode('utf-8').split('\n')
         self.totalLines = len(self.stdout)
         for i in range(self.totalLines):
@@ -402,7 +407,7 @@ class vtyshConfigure():
         self._genRouteMap(parser, newConf)
         self._genBGP(parser, newConf)
         if self.commands:
-            sendviaStdIn('vtysh', ['configure'] + self.commands)
+            sendviaStdIn('sudo vtysh', ['configure'] + self.commands)
 
 class Main():
     def __init__(self):
@@ -476,8 +481,7 @@ class Main():
         if not self.args.get('config', None):
             raise Exception(f'Issue with parsing input config. Input: {sys.argv}')
         self.execute()
-        print(json.dumps({}))
-        #print(json.dumps({'changed': 'ok'}))
+        print(json.dumps({'changed': 'ok'}))
 
 if __name__ == "__main__":
     main = Main()
