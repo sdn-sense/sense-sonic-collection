@@ -336,6 +336,10 @@ class vtyshConfigure():
             else:
                 self.commands.append("route-map %(name)s permit %(permit)s" % pItem)
                 self.commands.append(" match %(iptype)s address prefix-list %(match)s" % pItem)
+                # To secure from link local, SENSE uses only it's own predefined routes
+                # and we should use only global. Using link-local will not work.
+                if pItem["name"].endswith("mapin") and pItem["iptype"] == 'ipv6':
+                    self.commands.append(f" set %(iptype)s next-hop prefer-global" % pItem)
         if not newConf:
             return
         for iptype, rdict in newConf.get('route_map', {}).items():
