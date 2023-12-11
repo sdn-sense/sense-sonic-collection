@@ -17,7 +17,7 @@ Main reasons for this script are the following:
 
 With this script - as input, it get's information from Site-RM for which vlan and routing to configure/unconfigure
 It checks with local configuration and applies the configs on Sonic with config command or routing with vtysh
-
+ 
 Authors:
   Justas Balcas jbalcas (at) caltech.edu
 
