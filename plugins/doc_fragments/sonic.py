@@ -3,7 +3,8 @@
 
 # Copyright: Contributors to the Ansible project
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+from ansible_collections.sense.sonic.plugins.module_utils.runwrapper import classwrapper
 
-
+@classwrapper
 class ModuleDocFragment(object):
     DOCUMENTATION = ""

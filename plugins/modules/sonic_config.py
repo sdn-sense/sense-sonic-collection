@@ -358,6 +358,8 @@ class vtyshConfigure():
             return
         senseasn = newConf.get('asn', None)
         runnasn = parser.running_config.get('bgp', {}).get('asn', None)
+        if not senseasn:
+            return
         if runnasn and int(senseasn) != int(runnasn):
             msg = 'Running ASN != SENSE ASN (%s != %s)' % (runnasn, senseasn)
             raise Exception(msg)
@@ -402,6 +404,7 @@ class vtyshConfigure():
         if len(self.commands) == 1:
             # means only router to configure. Skip it.
             self.commands = []
+        return
 
 
     def generateCommands(self, parser, newConf):

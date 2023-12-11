@@ -6,12 +6,10 @@
 import sys
 import copy
 
-from ansible.utils.display import Display
 from ansible_collections.ansible.netcommon.plugins.action.network import ActionModule as ActionNetworkModule
+from ansible_collections.sense.sonic.plugins.module_utils.runwrapper import classwrapper
 
-display = Display()
-
-
+@classwrapper
 class ActionModule(ActionNetworkModule):
     """ Ansible Action Module"""
 
