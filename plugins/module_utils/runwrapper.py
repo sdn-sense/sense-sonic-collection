@@ -18,6 +18,7 @@ display = Display()
 
 def functionwrapper(func):
     """Function wrapper to print start/runtime/end"""
+
     def wrapper(*args, **kwargs):
         if display.verbosity > 5:
             display.vvvvvv(
