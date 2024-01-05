@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
+"""Gather Sonic Facts"""
 # Copyright: Contributors to the Ansible project
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 import re
@@ -54,6 +54,7 @@ def ipVersion(ipInput, strict=False):
 
 
 def make_json_obj(inptext):
+    """Make JSON object from string"""
     try:
         return json.loads(inptext)
     except json.decoder.JSONDecodeError:
@@ -154,6 +155,7 @@ class Interfaces(FactsBase):
 
     @staticmethod
     def parseInterfaceLine(line, padding):
+        """Parse Interface Line"""
         if not line:
             return None
         outvals = []
@@ -171,6 +173,7 @@ class Interfaces(FactsBase):
         return mac
 
     def parsePorts(self):
+        """Parse Ports"""
         # Add All Ports
         mac = self.getMac()
         for portType in ['PORT', 'PORTCHANNEL', 'VLAN']:
@@ -180,8 +183,19 @@ class Interfaces(FactsBase):
                     out['bandwidth'] = portDict['speed']
                 if mac:
                     out['macaddress'] = mac
+                # https://github.com/sonic-net/sonic-buildimage/pull/13580
+                # Older releases do not have mode key yet.
+                # So for now we assume that every port is switchport;
+                # TODO: Remove this once all releases have mode key.
+                if portType != 'VLAN':
+                    if 'mode' in portDict and portDict['mode'] == 'trunk':
+                        out['switchport'] = 'yes'
+                    elif 'mode' not in portDict:
+                        out['switchport'] = 'yes'
+
 
     def parsePortChannel(self):
+        """Parse Port Channel"""
         # Add All PorChannel members
         for port, _portDict in self.responses[1].get('PORTCHANNEL_MEMBER', {}).items():
             tmpPort = port.split('|')
@@ -193,6 +207,7 @@ class Interfaces(FactsBase):
             out['channel-member'].append(tmpPort[1])
 
     def parseVlans(self):
+        """Parse Vlans"""
         # Add Vlan Interface info, like IPs.
         for port, _portDict in self.responses[1].get('VLAN_INTERFACE', {}).items():
             tmpPort = port.split('|')
@@ -210,6 +225,7 @@ class Interfaces(FactsBase):
                 out['ipv6'].append({'address': normalizedip(tmpIP[0]), 'masklen': (tmpIP[1])})
 
     def parseVlanMembers(self):
+        """Parse Vlan Members"""
         # Get all vlan members, tagged, untagged
         for port, portDict in self.responses[1].get('VLAN_MEMBER', {}).items():
             tmpPort = port.split('|')
@@ -284,7 +300,7 @@ def main():
 
     ansible_facts = {'ansible_facts': {}}
     for key, value in facts.items():
-        key = 'ansible_net_%s' % key
+        key = f'ansible_net_{key}'
         ansible_facts['ansible_facts'][key] = value
 
     print(json.dumps(ansible_facts))
