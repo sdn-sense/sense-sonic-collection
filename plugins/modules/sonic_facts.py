@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Gather Sonic Facts"""
-import json
 # Copyright: Contributors to the Ansible project
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+import json
 import re
 import shlex
 import subprocess
@@ -187,6 +187,8 @@ class Interfaces(FactsBase):
                     out["bandwidth"] = portDict["speed"]
                 if mac:
                     out["macaddress"] = mac
+                if "vrf_name" in portDict:
+                    out["ip_vrf"] = portDict["vrf_name"]
                 # https://github.com/sonic-net/sonic-buildimage/pull/13580
                 # Older releases do not have mode key yet.
                 # So for now we assume that every port is switchport;

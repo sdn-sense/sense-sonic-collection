@@ -147,18 +147,34 @@ class SonicCmd:
             self.generateSonicDict()
             self.needRefresh = False
 
+    def _delVrf(self, **kwargs):
+        """Del VRF if present"""
+        self.__refreshConfig()
+        if kwargs["vrf"]:
+            cmd = f"sudo config interface vrf unbind {kwargs['vlan']}"
+            self.__executeCommand(cmd)
+
+    def _addVrf(self, **kwargs):
+        """Add VRF if not present"""
+        self.__refreshConfig()
+        if kwargs["vrf"]:
+            cmd = f"sudo config interface vrf bind {kwargs['vlan']} {kwargs['vrf']}"
+            self.__executeCommand(cmd)
+
     def _addVlan(self, **kwargs):
         """Add Vlan if not present"""
         self.__refreshConfig()
         if kwargs["vlan"] not in self.config:
             cmd = f"sudo config vlan add {kwargs['vlanid']}"
             self.__executeCommand(cmd)
+        self._addVrf(**kwargs)
 
     def _delVlan(self, **kwargs):
         """Del Vlan if present. Del All Members, IPs too (required)"""
         # First we need to clean all IPs and tagged members from VLAN
         self._delMember(**kwargs)
         self._delIP(**kwargs)
+        self._delVrf(**kwargs)
         self.__refreshConfig()
         if kwargs["vlan"] in self.config:
             cmd = f"sudo config vlan del {kwargs['vlanid']}"
@@ -393,7 +409,7 @@ class vtyshConfigure:
                 # and we should use only global. Using link-local will not work.
                 if pItem["name"].endswith("mapin") and pItem["iptype"] == "ipv6":
                     self.commands.append(
-                        f" set %(iptype)s next-hop prefer-global" % pItem
+                        " set %(iptype)s next-hop prefer-global" % pItem
                     )
 
         if not newConf:
@@ -504,6 +520,7 @@ class vtyshConfigure:
 
 
 class Main:
+    """Main Sonic Class"""
     def __init__(self):
         self.args = None
         self.sonicAPI = SonicCmd()
@@ -519,12 +536,12 @@ class Main:
         self.applyBGPConfig(senseconfig.get("BGP", {}))
 
     def parseArgs(self, inFile):
+        """Parse Args from input file"""
         if not os.path.isfile(inFile):
             raise Exception("Input File from param does not exist on Device.")
-            sys.exit(1)
         params = {"debug": r"sonic_debug=(\S+)", "config": r"sonic_config=(\S+)"}
         args = {}
-        with open(inFile, "r") as fd:
+        with open(inFile, "r", encoding="utf-8") as fd:
             tmptxt = fd.read()
             for key, reg in params.items():
                 match = re.search(reg, tmptxt, re.M)
@@ -537,16 +554,15 @@ class Main:
         for key, val in sensevlans.items():
             tmpKey = key.split(" ")
             if len(tmpKey) == 1:
-                tmpD = {"vlan": "".join(key), "vlanid": key[-4:]}
+                tmpD = {"vlan": "".join(key), "vlanid": key[-4:], "vrf": val.get("vrf", "")}
             else:
-                tmpD = {"vlan": "".join(tmpKey), "vlanid": tmpKey[1]}
+                tmpD = {"vlan": "".join(tmpKey), "vlanid": tmpKey[1], "vrf": val.get("vrf", "")}
             # Vlan ADD/Remove
             if val["state"] == "present":
                 self.sonicAPI._addVlan(**tmpD)
             if val["state"] == "absent":
                 self.sonicAPI._delVlan(**tmpD)
                 continue
-            # IP ADD/Remove
             for ipkey in ["ipv6_address", "ipv4_address"]:
                 for ipval, ipstate in val.get(ipkey, {}).items():
                     tmpD["ip"] = normalizeIPAddress(ipval)
