@@ -187,6 +187,8 @@ class Interfaces(FactsBase):
                     out["bandwidth"] = portDict["speed"]
                 if mac:
                     out["macaddress"] = mac
+                if "vrf_name" in portDict:
+                    out["ip_vrf"] = portDict["vrf_name"]
                 # https://github.com/sonic-net/sonic-buildimage/pull/13580
                 # Older releases do not have mode key yet.
                 # So for now we assume that every port is switchport;
