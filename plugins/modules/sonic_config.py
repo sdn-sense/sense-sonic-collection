@@ -23,6 +23,7 @@ Authors:
 
 Date: 2022/04/14
 """
+import time
 import ast
 import ipaddress
 import json
@@ -135,10 +136,18 @@ class SonicCmd:
                 intD.setdefault("tagged_members", [])
                 intD["tagged_members"].append(tmpKey[1])
 
-    def __executeCommand(self, cmd):
+    def __executeCommand(self, cmd, retries=3):
         """Execute command and set needRefresh to True"""
-        externalCommand(cmd)
-        self.needRefresh = True
+        while retries:
+            try:
+                externalCommand(cmd)
+                self.needRefresh = True
+                return
+            except Exception as ex:
+                retries -= 1
+                if not retries:
+                    raise ex
+                time.sleep(1)
 
     def __refreshConfig(self):
         """Refresh config from Switch"""
@@ -442,12 +451,12 @@ class vtyshConfigure:
         if not runnasn:
             return
         if int(senseasn) != int(runnasn):
-            msg = "Running ASN != SENSE ASN (%s != %s)" % (runnasn, senseasn)
+            msg = f"Running ASN != SENSE ASN ({runnasn} != {senseasn})"
             raise Exception(msg)
         # Append only if any new commands are added.
-        self.commands.append("router bgp %s" % senseasn)
+        self.commands.append(f"router bgp {senseasn}")
         for key in ["ipv6", "ipv4"]:
-            for netw, netstate in newConf.get("%s_network" % key, {}).items():
+            for netw, netstate in newConf.get(f"{key}_network", {}).items():
                 netwNorm = normalizeIPAddress(netw.split("/")[0])
                 if (
                     netwNorm
@@ -461,8 +470,8 @@ class vtyshConfigure:
                 # At this point it is not defined
                 if netstate == "present":
                     # Add it
-                    self.commands.append(" address-family %s unicast" % key)
-                    self.commands.append("  network %s" % netw)
+                    self.commands.append(f" address-family {key} unicast")
+                    self.commands.append(f"  network {netw}")
                     self.commands.append(" exit-address-family")
                 # Absent... TODO:
                 # We need a flag passed via ansible config which allows removal
@@ -471,38 +480,25 @@ class vtyshConfigure:
                 ipNorm = normalizeIPAddress(neighIP.split("/")[0])
                 if ipNorm in parser.running_config.get("bgp", {}).get("neighbor", {}):
                     if neighDict["state"] == "absent":
-                        self.commands.append(" address-family %s unicast" % key)
-                        self.commands.append(
-                            "  no neighbor %s remote-as %s"
-                            % (ipNorm, neighDict["remote_asn"])
-                        )
+                        self.commands.append(f" address-family {key} unicast")
+                        self.commands.append(f"  no neighbor {ipNorm} remote-as {neighDict['remote_asn']}")
                         continue
                 elif neighDict["state"] == "present":
                     # It is present in new config, but not present on router. Add it
-                    self.commands.append(" address-family %s unicast" % key)
-                    self.commands.append(
-                        "  neighbor %s remote-as %s" % (ipNorm, neighDict["remote_asn"])
-                    )
+                    self.commands.append(f" address-family {key} unicast")
+                    self.commands.append(f"  neighbor {ipNorm} remote-as {neighDict['remote_asn']}")
                     # Adding remote-as will exit address family. Need to enter it again
-                    self.commands.append(" address-family %s unicast" % key)
-                    self.commands.append("  neighbor %s activate" % ipNorm)
-                    self.commands.append(
-                        "  neighbor %s soft-reconfiguration inbound" % ipNorm
-                    )
+                    self.commands.append(f" address-family {key} unicast")
+                    self.commands.append(f"  neighbor {ipNorm} activate")
+                    self.commands.append(f"  neighbor {ipNorm} soft-reconfiguration inbound")
                     for rtype in ["in", "out"]:
                         for rName, rState in (
                             neighDict.get("route_map", {}).get(rtype, {}).items()
                         ):
                             if rState == "present":
-                                self.commands.append(
-                                    "  neighbor %s route-map %s %s"
-                                    % (ipNorm, rName, rtype)
-                                )
+                                self.commands.append(f"  neighbor {ipNorm} route-map {rName} {rtype}")
                             elif rState == "absent":
-                                self.commands.append(
-                                    "  no neighbor %s route-map %s %s"
-                                    % (ipNorm, rName, rtype)
-                                )
+                                self.commands.append(f"  no neighbor {ipNorm} route-map {rName} {rtype}")
                     self.commands.append(" exit-address-family")
         if len(self.commands) == 1:
             # means only router to configure. Skip it.
@@ -584,6 +580,7 @@ class Main:
         self.vtyConf.generateCommands(self.vtyshparser, bgpconfig)
 
     def main(self):
+        """Main run"""
         if len(sys.argv) != 2:
             raise Exception(f"Issue with passed arguments. Input: {sys.argv}")
         self.args = self.parseArgs(sys.argv[1])
