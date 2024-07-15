@@ -4,4 +4,6 @@ plugin_routing:
       redirect: sense.sonic.sonic
     sonic_facts:
       redirect: sense.sonic.sonic
+    sonic_command:
+      redurect: sense.sonic.sonic
 
