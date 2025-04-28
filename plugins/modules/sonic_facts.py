@@ -266,7 +266,7 @@ class Interfaces(FactsBase):
             "remote_system_name": {"rules": [r"SysName:\s*(.+)"]},
             "remote_port_id": {
                 "action": "ifnotmatched",
-                "rules": [r"PortID:\s*ifname\s*(.+)", r"PortDescr:\s*(.+)"],
+                "rules": [r"PortID:\s*mac\s*(.+)", r"PortID:\s*ifname\s*(.+)", r"PortDescr:\s*(.+)"],
             },
             "remote_chassis_id": {
                 "action": "overwrite",
