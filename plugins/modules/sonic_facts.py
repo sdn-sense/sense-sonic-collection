@@ -125,8 +125,14 @@ class Interfaces(FactsBase):
                 intfOut["operstatus"] = intfData["Oper"]
             if "Type" in intfData and intfData["Type"] != "N/A":
                 intfOut["mediatype"] = intfData["Type"]
-                intfOut["lineprotocol"] = "up"
-            elif "Type" in intfData and intfData["Type"] == "N/A":
+            # lineprotocol follows the operational state (Oper column). The
+            # transceiver Type column only reports optic presence: a Port-Channel
+            # aggregate - and some DAC/backplane links - show Type "N/A" while
+            # being fully up, so Type must not be used to derive line protocol.
+            # Fall back to the Type heuristic only when Oper is not reported.
+            if "Oper" in intfData:
+                intfOut["lineprotocol"] = "up" if str(intfData["Oper"]).strip().lower() == "up" else "down"
+            elif intfData.get("Type") == "N/A":
                 intfOut["lineprotocol"] = "down"
             else:
                 intfOut["lineprotocol"] = "unknown"
