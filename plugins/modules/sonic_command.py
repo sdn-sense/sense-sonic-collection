@@ -172,21 +172,15 @@ class Main:
         self.log_out(out)
 
     def execute_bgpsummary(self, bgpconf):
-        """Execute BGP summary command and normalize the output.
-        ASSUMPTION (unverified): SONiC's BGP daemon is FRR, so this shells
-        out to vtysh directly, exactly as on a plain FRR box. If this
-        SONiC build fronts vtysh differently (e.g. requires `docker exec
-        bgp vtysh -c ...` because vtysh isn't on the host PATH), only the
-        `command` string below needs to change -- the JSON shape and the
-        rest of the parsing is already confirmed identical to FRR's."""
+        """Execute BGP summary command and normalize the output."""
         bgpconf = bgpconf or {}
         vrf = bgpconf.get('vrf', '') or ''
         wanttype = bgpconf.get('type', 'both') or 'both'
         wantafis = ['ipv4', 'ipv6'] if wanttype == 'both' else [wanttype]
         if vrf:
-            command = f'vtysh -c "show bgp vrf {vrf} summary json"'
+            command = f'sudo vtysh -c "show bgp vrf {vrf} summary json"'
         else:
-            command = 'vtysh -c "show bgp summary json"'
+            command = 'sudo vtysh -c "show bgp summary json"'
         try:
             out = externalCommand(command)
         except Exception as ex:
