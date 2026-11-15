@@ -548,11 +548,12 @@ class Main:
     def applyVlanConfig(self, sensevlans):
         """Loop via sense vlans and check with sonic vlans config"""
         for key, val in sensevlans.items():
-            tmpKey = key.split(" ")
-            if len(tmpKey) == 1:
-                tmpD = {"vlan": "".join(key), "vlanid": key[-4:], "vrf": val.get("vrf", "")}
-            else:
-                tmpD = {"vlan": "".join(tmpKey), "vlanid": tmpKey[1], "vrf": val.get("vrf", "")}
+            # Keys are "Vlan300" or "Vlan 300"; VLAN IDs are 1-4 digits, so never slice a fixed width.
+            vlanName = "".join(key.split(" "))
+            match = re.fullmatch(r"Vlan(\d{1,4})", vlanName)
+            if not match:
+                raise Exception(f"Unable to parse vlan id from interface name: {key}")
+            tmpD = {"vlan": vlanName, "vlanid": match[1], "vrf": val.get("vrf", "")}
             # Vlan ADD/Remove
             if val["state"] == "present":
                 self.sonicAPI._addVlan(**tmpD)
